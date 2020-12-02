@@ -237,7 +237,7 @@ class MagicFoo {
 public:
     std::vector<int> vec;
     MagicFoo(std::initializer_list<int> list) {
-        for (std::initializer_list<int>::iterator it = list.begin(); 
+        for (std::initializer_list<int>::iterator it = list.begin();
              it != list.end(); ++it)
             vec.push_back(*it);
     }
@@ -256,7 +256,7 @@ int main() {
 初始化列表除了用在对象构造上，还能将其作为普通函数的形参，例如：
 
 ```Cpp
-public: 
+public:
     void foo(std::initializer_list<int> list) {
             for (std::initializer_list<int>::iterator it = list.begin(); it != list.end(); ++it) vec.push_back(*it);
     }
