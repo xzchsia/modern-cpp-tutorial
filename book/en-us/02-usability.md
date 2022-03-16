@@ -92,12 +92,11 @@ We will discuss them in detail later in the [decltype](#decltype) section.
 
 ### constexpr
 
-C++ itself already has the concept of constant expressions,
-such as 1+2, 3*4. Such expressions always produce the same result
-without any side effects. If the compiler can directly optimize
-and embed these expressions into the program at compile time,
-it will increase the performance of the program.
-A very obvious example is in the definition phase of an array:
+C++ itself already has the concept of constant expressions, such as 1+2,
+3\*4. Such expressions always produce the same result without any side effects.
+If the compiler can directly optimize and embed these expressions into the program at
+compile-time, it will increase the performance of the program. A very obvious example
+is in the definition phase of an array:
 
 ```cpp
 #include <iostream>
@@ -147,14 +146,14 @@ we need to use the `constexpr` feature introduced in C++11, which will be introd
 to solve this problem; for `arr_5`, before C++98 The compiler cannot know that `len_foo()`
 actually returns a constant at runtime, which causes illegal production.
 
-> Note that most compilers now have their own compiler optimizations.
+> Note that most compilers now have their compiler optimizations.
 > Many illegal behaviors become legal under the compiler's optimization.
 > If you need to reproduce the error, you need to use the old version of the compiler.
 
 C++11 provides `constexpr` to let the user explicitly declare that the function or
 object constructor will become a constant expression at compile time.
 This keyword explicitly tells the compiler that it should verify that `len_foo`
-should be a compile time constant expression. Constant expression.
+should be a compile-time constant expression. Constant expression.
 
 In addition, the function of `constexpr` can use recursion:
 
@@ -240,7 +239,7 @@ Initialization is a very important language feature,
 the most common one is when the object is initialized.
 In traditional C++, different objects have different initialization methods,
 such as ordinary arrays, PODs (**P**lain **O**ld **D**ata,
-ie classes without constructs, destructors, and virtual functions)
+i.e. classes without constructs, destructors, and virtual functions)
 Or struct type can be initialized with `{}`,
 which is what we call the initialization list.
 For the initialization of the class object,
@@ -300,7 +299,8 @@ int main() {
     MagicFoo magicFoo = {1, 2, 3, 4, 5};
 
     std::cout << "magicFoo: ";
-    for (std::vector<int>::iterator it = magicFoo.vec.begin(); it != magicFoo.vec.end(); ++it) std::cout << *it << std::endl;
+    for (std::vector<int>::iterator it = magicFoo.vec.begin(); it != magicFoo.vec.end(); ++it) 
+        std::cout << *it << std::endl;
 }
 ```
 
@@ -313,7 +313,8 @@ be used as a formal parameter of a normal function, for example:
 ```Cpp
 public:
     void foo(std::initializer_list<int> list) {
-            for (std::initializer_list<int>::iterator it = list.begin(); it != list.end(); ++it) vec.push_back(*it);
+        for (std::initializer_list<int>::iterator it = list.begin();
+            it != list.end(); ++it) vec.push_back(*it);
     }
 
 magicFoo.foo({6,7,8,9});
@@ -332,7 +333,7 @@ provided in other languages. In the chapter on containers,
 we will learn that C++11 has added a `std::tuple` container for
 constructing a tuple that encloses multiple return values. But the flaw
 is that C++11/14 does not provide a simple way to get and define
-the elements in the tuple directly from the tuple,
+the elements in the tuple from the tuple,
 although we can unpack the tuple using `std::tie`
 But we still have to be very clear about how many objects this tuple contains,
 what type of each object is, very troublesome.
@@ -360,7 +361,7 @@ The `auto` type derivation is described in the
 
 ## 2.3 Type inference
 
-In traditional C and C++, the types of parameters must be clearly defined, which does not help us to quickly encode, especially when we are faced with a large number of complex template types, we must clearly indicate the type of variables in order to proceed. Subsequent coding, which not only slows down our development efficiency, but also makes the code stinking and long.
+In traditional C and C++, the types of parameters must be clearly defined, which does not help us to quickly encode, especially when we are faced with a large number of complex template types, we must indicate the type of variables to proceed. Subsequent coding, which not only slows down our development efficiency but also makes the code stinking and long.
 
 C++11 introduces the two keywords `auto` and `decltype` to implement type derivation, letting the compiler worry about the type of the variable. This makes C++ the same as other modern programming languages, in a way that provides the habit of not having to worry about variable types.
 
@@ -412,18 +413,20 @@ auto i = 5;              // i as int
 auto arr = new auto(10); // arr as int *
 ```
 
-> **Note**: `auto` cannot be used for function arguments, so the following
-> is not possible to compile (considering overloading,
-> we should use templates):
-> ```cpp
-> int add(auto x, auto y);
->
-> 2.6.auto.cpp:16:9: error: 'auto' not allowed in function prototype
-> int add(auto x, auto y) {
->         ^~~~
-> ```
->
-> In addition, `auto` cannot be used to derive array types:
+Since C++ 20, `auto` can even be used as function arguments. Consider
+the following example:
+
+```cpp
+int add(auto x, auto y) {
+    return x+y;
+}
+
+auto i = 5; // type int
+auto j = 6; // type int
+std::cout << add(i, j) << std::endl;
+```
+
+> **Note**: `auto` cannot be used to derive array types yet:
 >
 > ```cpp
 > auto auto_arr2[10] = {arr};   // illegal, can't infer array type
@@ -436,7 +439,6 @@ auto arr = new auto(10); // arr as int *
 
 The `decltype` keyword is used to solve the defect that the auto keyword
 can only type the variable. Its usage is very similar to `typeof`:
-
 
 ```cpp
 decltype(expression)
@@ -479,15 +481,15 @@ You may think that when we introduce `auto`, we have already mentioned that `aut
 ```cpp
 template<typename R, typename T, typename U>
 R add(T x, U y) {
-    return x+y
+    return x+y;
 }
 ```
 
-> Note: There is no difference between typename and class in the template parameter list. Before the keyword typename appears, class is used to define the template parameters. However, when defining a variable with [nested dependency type](http://en.cppreference.com/w/cpp/language/dependent_name#The_typename_disambiguator_for_dependent_names) in the template, you need to use typename to eliminate ambiguity.
+> Note: There is no difference between typename and class in the template parameter list. Before the keyword typename appears, class is used to define the template parameters. However, when defining a variable with [nested dependency type](https://en.cppreference.com/w/cpp/language/dependent_name#The_typename_disambiguator_for_dependent_names) in the template, you need to use typename to eliminate ambiguity.
 
-Such code is actually very ugly, because the programmer must explicitly
+Such code is very ugly because the programmer must explicitly
 indicate the return type when using this template function.
-But in fact we don't know what kind of operation
+But in fact, we don't know what kind of operation
 the `add()` function will do, and what kind of return type to get.
 
 This problem was solved in C++11. Although you may immediately
@@ -583,7 +585,7 @@ decltype(auto) look_up_a_string_2() {
 
 ### if constexpr
 
-As we saw at the beginning of this chapter, we know that C++11 introduces the `constexpr` keyword, which compiles expressions or functions into constant results. A natural idea is that if we introduce this feature into the conditional judgment, let the code complete the branch judgment at compile time, can it make the program more efficient? C++17 introduces the `constexpr` keyword into the `if` statement, allowing you to declare the condition of a constant expression in your code. Consider the following code:
+As we saw at the beginning of this chapter, we know that C++11 introduces the `constexpr` keyword, which compiles expressions or functions into constant results. A natural idea is that if we introduce this feature into the conditional judgment, let the code complete the branch judgment at compile-time, can it make the program more efficient? C++17 introduces the `constexpr` keyword into the `if` statement, allowing you to declare the condition of a constant expression in your code. Consider the following code:
 
 ```cpp
 #include <iostream>
@@ -619,7 +621,7 @@ int main() {
 
 ### Range-based for loop
 
-Finally, C++11 introduces a range-based iterative method, and we have the ability to write loops that are as concise
+Finally, C++11 introduces a range-based iterative method, and we can write loops that are as concise
 as Python, and we can further simplify the previous example:
 
 ```cpp
@@ -642,7 +644,7 @@ int main() {
 
 ## 2.5 Templates
 
-C++ templates have always been a special art of the language, and templates can even be used independently as a new language. The philosophy of the template is to throw all the problems that can be processed at compile time into the compile time, and only deal with those core dynamic services at runtime, so as to greatly optimize the performance of the runtime. Therefore, templates are also regarded by many as one of the black magic of C++.
+C++ templates have always been a special art of the language, and templates can even be used independently as a new language. The philosophy of the template is to throw all the problems that can be processed at compile time into the compile time, and only deal with those core dynamic services at runtime, to greatly optimize the performance of the runtime. Therefore, templates are also regarded by many as one of the black magic of C++.
 
 ### Extern templates
 
@@ -697,7 +699,7 @@ typedef MagicType<std::vector<T>, std::string> FakeDarkMagic;
 
 C++11 uses `using` to introduce the following form of writing, and at the same time supports the same effect as the traditional `typedef`:
 
-> Usually we use `typedef` to define the alias syntax: `typedef original name new name; `, but the definition syntax for aliases such as function pointers is different, which usually causes a certain degree of difficulty for direct reading.
+> Usually, we use `typedef` to define the alias syntax: `typedef original name new name; `, but the definition syntax for aliases such as function pointers is different, which usually causes a certain degree of difficulty for direct reading.
 
 ```cpp
 typedef int (*process)(void *);
@@ -707,28 +709,6 @@ using TrueDarkMagic = MagicType<std::vector<T>, std::string>;
 
 int main() {
     TrueDarkMagic<bool> you;
-}
-```
-
-### Default template parameters
-
-We may have defined an addition function:
-
-```cpp
-template<typename T, typename U>
-auto add(T x, U y) -> decltype(x+y) {
-    return x+y;
-}
-```
-
-However, when used, it is found that to use add, you must specify the type of its template parameters each time.
-
-A convenience is provided in C++11 to specify the default parameters of the template:
-
-```cpp
-template<typename T = int, typename U = int>
-auto add(T x, U y) -> decltype(x+y) {
-    return x+y;
 }
 ```
 
@@ -746,7 +726,7 @@ and there is no need to fix the number of parameters when defining.
 template<typename... Ts> class Magic;
 ```
 
-The template class Magic object can accept unrestricted number of typename as
+The template class Magic object can accept an unrestricted number of typename as
 a formal parameter of the template, such as the following definition:
 
 ```cpp
@@ -799,7 +779,6 @@ the parameter package, but there are two classic processing methods:
 
 Recursion is a very easy way to think of and the most classic approach. This method continually recursively passes template parameters to the function, thereby achieving the purpose of recursively traversing all template parameters:
 
-
 ```cpp
 #include <iostream>
 template<typename T0>
@@ -833,7 +812,7 @@ void printf2(T0 t0, T... t) {
 
 **3. Initialize list expansion**
 
-Recursive template functions are a standard practice, but the obvious drawback is that you must define a function that terminates recursion.
+Recursive template functions are standard practice, but the obvious drawback is that you must define a function that terminates recursion.
 
 Here is a description of the black magic that is expanded using the initialization list:
 
@@ -880,7 +859,7 @@ auto add(T t, U u) {
 
 The parameters of the template `T` and `U` are specific types.
 But there is also a common form of template parameter that allows different literals
-to be template parameters, ie non-type template parameters:
+to be template parameters, i.e. non-type template parameters:
 
 ```cpp
 template <typename T, int BufSize>
@@ -896,7 +875,7 @@ buffer_t<int, 100> buf; // 100 as template parameter
 ```
 
 In this form of template parameters, we can pass `100` as a parameter to the template.
-After C++11 introduced the feature of type derivation, we will naturally ask, since the template parameters here
+After C++11 introduced the feature of type derivation, we will naturally ask, since the template parameters here.
 Passing with a specific literal, can the compiler assist us in type derivation,
 By using the placeholder `auto`, there is no longer a need to explicitly specify the type?
 Fortunately, C++17 introduces this feature, and we can indeed use the `auto` keyword to let the compiler assist in the completion of specific types of derivation.
@@ -1022,7 +1001,7 @@ struct SubClass3: Base {
 
 ### Explicit delete default function
 
-In traditional C++, if the programmer does not provide it, the compiler will default to generating default constructors, copy constructs, assignment operators, and destructors for the object. In addition, C++ also defines operators such as `new` `delete` for all classes. This part of the function can be overridden when the programmer needs it.
+In traditional C++, if the programmer does not provide it, the compiler will default to generating default constructors, copy constructs, assignment operators, and destructors for the object. Besides, C++ also defines operators such as `new` `delete` for all classes. This part of the function can be overridden when the programmer needs it.
 
 This raises some requirements: the ability to accurately control the generation of default functions cannot be controlled. For example, when copying a class is prohibited, the copy constructor and the assignment operator must be declared as `private`. Trying to use these undefined functions will result in compilation or link errors, which is a very unconventional way.
 
@@ -1041,7 +1020,7 @@ class Magic {
 
 ### Strongly typed enumerations
 
-In traditional C++, enumerated types are not type-safe, and enumerated types are treated as integers, which allows two completely different enumerated types to be directly compared (although the compiler gives the check, but not all) , ** Even the enumeration value names of different enum types in the same namespace cannot be the same**, which is usually not what we want to see.
+In traditional C++, enumerated types are not type-safe, and enumerated types are treated as integers, which allows two completely different enumerated types to be directly compared (although the compiler gives the check, but not all), ** Even the enumeration value names of different enum types in the same namespace cannot be the same**, which is usually not what we want to see.
 
 C++11 introduces an enumeration class and declares it using the syntax of `enum class`:
 
@@ -1069,7 +1048,9 @@ And we want to get the value of the enumeration value, we will have to explicitl
 ```cpp
 #include <iostream>
 template<typename T>
-std::ostream& operator<<(typename std::enable_if<std::is_enum<T>::value, std::ostream>::type& stream, const T& e)
+std::ostream& operator<<(
+    typename std::enable_if<std::is_enum<T>::value,
+        std::ostream>::type& stream, const T& e)
 {
     return stream << static_cast<typename std::underlying_type<T>::type>(e);
 }
@@ -1085,7 +1066,7 @@ std::cout << new_enum::value3 << std::endl
 
 This section introduces the enhancements to language usability in modern C++, which I believe are the most important features that almost everyone needs to know and use:
 
-1. auto type derivation
+1. Auto type derivation
 2. Scope for iteration
 3. Initialization list
 4. Variable parameter template
@@ -1125,4 +1106,4 @@ This section introduces the enhancements to language usability in modern C++, wh
 
 ## Licenses
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](../../LICENSE).
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](../../LICENSE).

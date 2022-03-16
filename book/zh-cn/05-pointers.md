@@ -19,7 +19,7 @@ order: 5
 也就是我们常说的 RAII 资源获取即初始化技术。
 
 凡事都有例外，我们总会有需要将对象在自由存储上分配的需求，在传统 C++ 里我们只好使用 `new` 和 `delete` 去
-『记得』对资源进行释放。而 C++11 引入了智能指针的概念，使用了引用计数的想法，让程序员不再需要关心手动释放内存。
+『记得』对资源进行释放。而 C++11 引入智能指针的概念，使用引用计数的想法，让程序员不再需要关心手动释放内存。
 这些智能指针就包括 `std::shared_ptr`/`std::unique_ptr`/`std::weak_ptr`，使用它们需要包含头文件 `<memory>`。
 
 > 注意：引用计数不是垃圾回收，引用计数能够尽快收回不再被使用的对象，同时在回收的过程中也不会造成长时间的等待，
@@ -27,7 +27,7 @@ order: 5
 
 ## 5.2 `std::shared_ptr`
 
-`std::shared_ptr` 是一种智能指针，它能够记录多少个 `shared_ptr` 共同指向一个对象，从而消除显示的调用 
+`std::shared_ptr` 是一种智能指针，它能够记录多少个 `shared_ptr` 共同指向一个对象，从而消除显式的调用 
 `delete`，当引用计数变为零的时候就会将对象自动删除。
 
 但还不够，因为使用 `std::shared_ptr` 仍然需要使用 `new` 来调用，这使得代码出现了某种程度上的不对称。
@@ -38,12 +38,10 @@ order: 5
 ```cpp
 #include <iostream>
 #include <memory>
-void foo(std::shared_ptr<int> i)
-{
+void foo(std::shared_ptr<int> i) {
     (*i)++;
 }
-int main()
-{
+int main() {
     // auto pointer = new int(10); // illegal, no direct assignment
     // Constructed a std::shared_ptr
     auto pointer = std::make_shared<int>(10);
@@ -175,7 +173,7 @@ int main() {
 
 在上图中，最后一步只剩下 B，而 B 并没有任何智能指针引用它，因此这块内存资源也会被释放。
 
-`std::weak_ptr` 没有 `*` 运算符和 `->` 运算符，所以不能够对资源进行操作，它的唯一作用就是用于检查 `std::shared_ptr` 是否存在，其 `expired()` 方法能在资源未被释放时，会返回 `false`，否则返回 `true`。
+`std::weak_ptr` 没有 `*` 运算符和 `->` 运算符，所以不能够对资源进行操作，它可以用于检查 `std::shared_ptr` 是否存在，其 `expired()` 方法能在资源未被释放时，会返回 `false`，否则返回 `true`；除此之外，它也可以用于获取指向原始对象的 `std::shared_ptr` 指针，其 `lock()` 方法在原始对象未被释放时，返回一个指向原始对象的 `std::shared_ptr` 指针，进而访问原始对象的资源，否则返回`nullptr`。
 
 ## 总结
 
@@ -185,10 +183,10 @@ int main() {
 
 ## 进一步阅读的参考资料
 
-1. [stackoverflow 上关于『C++11为什么没有 make_unique』的讨论](http://stackoverflow.com/questions/12580432/why-does-c11-have-make-shared-but-not-make-unique)
+1. [stackoverflow 上关于『C++11为什么没有 make_unique』的讨论](https://stackoverflow.com/questions/12580432/why-does-c11-have-make-shared-but-not-make-unique)
 
 ## 许可
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
 
-本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](http://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。
+本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。

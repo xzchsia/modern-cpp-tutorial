@@ -18,11 +18,11 @@ In traditional C++, "remembering" to manually release resources is not always a 
 So the usual practice is that for an object, we apply for space when constructor, and free space when the destructor (called when leaving the scope).
 That is, we often say that the RAII resource acquisition is the initialization technology.
 
-There are exceptions to everything, we always have the need to allocate objects on free storage. In traditional C++ we have to use `new` and `delete` to "remember" to release resources. C++11 introduces the concept of smart pointers, using the idea of ​​reference counting, so that programmers no longer need to care about manually releasing memory.
+There are exceptions to everything, we always need to allocate objects on free storage. In traditional C++ we have to use `new` and `delete` to "remember" to release resources. C++11 introduces the concept of smart pointers, using the idea of ​​reference counting so that programmers no longer need to care about manually releasing memory.
 These smart pointers include `std::shared_ptr`/`std::unique_ptr`/`std::weak_ptr`, which need to include the header file `<memory>`.
 
 > Note: The reference count is not garbage collection. The reference count can recover the objects that are no longer used as soon as possible, and will not cause long waits during the recycling process.
-> More clearly and clearly indicate the life cycle of resources.
+> More clearly and indicate the life cycle of resources.
 
 ## 5.2 `std::shared_ptr`
 
@@ -36,12 +36,10 @@ And return the `std::shared_ptr` pointer of this object type. For example:
 ```cpp
 #include <iostream>
 #include <memory>
-void foo(std::shared_ptr<int> i)
-{
+void foo(std::shared_ptr<int> i) {
     (*i)++;
 }
-int main()
-{
+int main() {
     // auto pointer = new int(10); // illegal, no direct assignment
     // Constructed a std::shared_ptr
     auto pointer = std::make_shared<int>(10);
@@ -60,20 +58,26 @@ auto pointer = std::make_shared<int>(10);
 auto pointer2 = pointer; // reference count+1
 auto pointer3 = pointer; // reference count+1
 int *p = pointer.get(); // no increase of reference count
+
 std::cout << "pointer.use_count() = " << pointer.use_count() << std::endl; // 3
 std::cout << "pointer2.use_count() = " << pointer2.use_count() << std::endl; // 3
 std::cout << "pointer3.use_count() = " << pointer3.use_count() << std::endl; // 3
 
 pointer2.reset();
 std::cout << "reset pointer2:" << std::endl;
+
 std::cout << "pointer.use_count() = " << pointer.use_count() << std::endl; // 2
-std::cout << "pointer2.use_count() = " << pointer2.use_count() << std::endl; // 0, pointer2 has reset
+std::cout << "pointer2.use_count() = " 
+    << pointer2.use_count() << std::endl; // 0, pointer2 has reset        
 std::cout << "pointer3.use_count() = " << pointer3.use_count() << std::endl; // 2
+
 pointer3.reset();
 std::cout << "reset pointer3:" << std::endl;
+
 std::cout << "pointer.use_count() = " << pointer.use_count() << std::endl; // 1
 std::cout << "pointer2.use_count() = " << pointer2.use_count() << std::endl; // 0
-std::cout << "pointer3.use_count() = " << pointer3.use_count() << std::endl; // 0, pointer3 has reset
+std::cout << "pointer3.use_count() = " 
+    << pointer3.use_count() << std::endl; // 0, pointer3 has reset
 ```
 
 ## 5.3 `std::unique_ptr`
@@ -86,7 +90,7 @@ std::unique_ptr<int> pointer2 = pointer; // illegal
 ```
 
 > `make_unique` is not complicated. C++11 does not provide `std::make_unique`, which can be implemented by itself:
-> 
+>
 > ```cpp
 > template<typename T, typename ...Args>
 > std::unique_ptr<T> make_unique( Args&& ...args ) {
@@ -114,30 +118,30 @@ void f(const Foo &) {
 
 int main() {
     std::unique_ptr<Foo> p1(std::make_unique<Foo>());
-    
+
     // p1 is not empty, prints
     if (p1) p1->foo();
     {
         std::unique_ptr<Foo> p2(std::move(p1));
-        
+
         // p2 is not empty, prints
         f(*p2);
-        
+
         // p2 is not empty, prints
         if(p2) p2->foo();
-        
+
         // p1 is empty, no prints
         if(p1) p1->foo();
-        
+
         p1 = std::move(p2);
-        
+
         // p2 is empty, no prints
         if(p2) p2->foo();
         std::cout << "p2 was destroyed" << std::endl;
     }
     // p1 is not empty, prints
     if (p1) p1->foo();
-    
+
     // Foo instance will be destroyed when leaving the scope
 }
 ```
@@ -172,12 +176,12 @@ int main() {
     std::shared_ptr<B> b = std::make_shared<B>();
     a->pointer = b;
     b->pointer = a;
-    
+
     return 0;
 }
 ```
 
-The result is that A and B will not be destroyed. This is because the pointer inside a, b also references `a, b`, which makes the reference count of `a, b` become 2, leaving the scope. When the `a, b` smart pointer is destructed, it can only cause the reference count of this area to be decremented by one. This causes the memory area reference count pointed to by the `a, b` object to be non-zero, but the external has no way to find this area, it also caused a memory leak, as shown in Figure 5.1:
+The result is that A and B will not be destroyed. This is because the pointer inside a, b also references `a, b`, which makes the reference count of `a, b` becomes 2, leaving the scope. When the `a, b` smart pointer is destructed, it can only cause the reference count of this area to be decremented by one. This causes the memory area reference count pointed to by the `a, b` object to be non-zero, but the external has no way to find this area, it also caused a memory leak, as shown in Figure 5.1:
 
 ![Figure 5.1](../../assets/figures/pointers1_en.png)
 
@@ -187,7 +191,8 @@ The solution to this problem is to use the weak reference pointer `std::weak_ptr
 
 In the above figure, only B is left in the last step, and B does not have any smart pointers to reference it, so this memory resource will also be released.
 
-`std::weak_ptr` has no `*` operator and `->` operator, so it can't operate on resources. Its only function is to check if `std::shared_ptr` exists, its `expired()` method can return `false` when the resource is not released, otherwise it returns `true`.
+`std::weak_ptr` has no implemented `*` and `->` operators, therefore it cannot operate on resources. `std::weak_ptr` allows us to check if a `std::shared_ptr` exists or not. The `expired()` method of a `std::weak_ptr` returns `false` when the resource is not released; Otherwise, it returns `true`.
+Furthermore, it can also be used for the purpose of obtaining `std::shared_ptr`, which points to the original object. The `lock()` method returns a `std::shared_ptr` to the original object when the resource is not released, or `nullptr` otherwise.
 
 ## Conclusion
 
@@ -197,8 +202,8 @@ The technology of smart pointers is not novel. It is a common technology in many
 
 ## Further Readings
 
-- [Why does C++11 have `make_shared` but not `make_unique`](http://stackoverflow.com/questions/12580432/why-does-c11-have-make-shared-but-not-make-unique)
+- [Why does C++11 have `make_shared` but not `make_unique`](https://stackoverflow.com/questions/12580432/why-does-c11-have-make-shared-but-not-make-unique)
 
 ## Licenses
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](../../LICENSE).
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](../../LICENSE).

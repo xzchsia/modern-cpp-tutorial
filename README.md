@@ -2,8 +2,7 @@
 
 # Modern C++ Tutorial: C++11/14/17/20 On the Fly
 
-![](https://img.shields.io/travis/changkun/modern-cpp-tutorial/master?style=flat-square) [![](https://img.shields.io/badge/language-English-blue.svg?style=flat-square)](./README.md) [![](https://img.shields.io/badge/language-简体中文-red.svg?style=flat-square)](./README-zh-cn.md) [![](https://img.shields.io/badge/€-donate-ff69b4.svg?style=flat-square)](./assets/donate.md) [![](https://img.shields.io/badge/chat-community-667ed5.svg?style=flat-square)](./assets/community.md) 
-
+![](https://img.shields.io/travis/changkun/modern-cpp-tutorial/master?style=flat-square) [![](https://img.shields.io/badge/language-English-blue.svg?style=flat-square)](./README.md) [![](https://img.shields.io/badge/language-简体中文-red.svg?style=flat-square)](./README-zh-cn.md) [![](https://img.shields.io/badge/€-donate-ff69b4.svg?style=flat-square)](./assets/donate.md)
 ## Purpose
 
 The book claims to be "On the Fly". Its intent is to provide a comprehensive introduction to the relevant features regarding modern C++ (before 2020s).
@@ -35,7 +34,7 @@ Each chapter of this book contains a lot of code. If you encounter problems whil
 
 ## Exercises
 
-There are few exercises at the end of each chapter of the book. These are ment to test whether you have mastered the knowledge in the current chapter. You can find the possible answer to the problem [here](./exercises). Again, the folder name is the chapter number.
+There are few exercises at the end of each chapter of the book. These are meant to test whether you have mastered the knowledge in the current chapter. You can find the possible answer to the problem [here](./exercises). Again, the folder name is the chapter number.
 
 ## Website
 
@@ -66,4 +65,4 @@ The author is grateful to all contributors, including but not limited to [Contri
 
 ## Licenses
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](./LICENSE).
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png" /></a><br />This work was written by [Ou Changkun](https://changkun.de) and licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>. The code of this repository is open sourced under the [MIT license](./LICENSE).

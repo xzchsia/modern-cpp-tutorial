@@ -115,7 +115,7 @@ std::sort(arr.begin(), arr.end());
 而无序容器中的元素是不进行排序的，内部通过 Hash 表实现，插入和搜索元素的平均复杂度为 `O(constant)`，
 在不关心容器内部元素顺序时，能够获得显著的性能提升。
 
-C++11 引入了两组无序容器：`std::unordered_map`/`std::unordered_multimap` 和 
+C++11 引入了的两组无序容器分别是：`std::unordered_map`/`std::unordered_multimap` 和 
 `std::unordered_set`/`std::unordered_multiset`。
 
 它们的用法和原有的 `std::map`/`std::multimap`/`std::set`/`set::multiset` 基本类似，
@@ -292,7 +292,7 @@ auto tuple_len(T &tpl) {
 // 迭代
 for(int i = 0; i != tuple_len(new_tuple); ++i)
     // 运行期索引
-    std::cout << tuple_index(i, new_tuple) << std::endl;
+    std::cout << tuple_index(new_tuple, i) << std::endl;
 ```
 
 ## 总结
@@ -305,6 +305,6 @@ for(int i = 0; i != tuple_len(new_tuple); ++i)
 
 ## 许可
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
 
-本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](http://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。
+本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。

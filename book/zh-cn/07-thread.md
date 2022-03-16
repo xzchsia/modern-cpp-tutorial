@@ -33,7 +33,7 @@ C++11 引入了 `mutex` 相关的类，其所有相关的函数都放在 `<mutex
 
 `std::mutex` 是 C++11 中最基本的 `mutex` 类，通过实例化 `std::mutex` 可以创建互斥量，
 而通过其成员函数 `lock()` 可以进行上锁，`unlock()` 可以进行解锁。
-但是在在实际编写代码的过程中，最好不去直接调用成员函数，
+但是在实际编写代码的过程中，最好不去直接调用成员函数，
 因为调用成员函数就需要在每个临界区的出口处调用 `unlock()`，当然，还包括异常。
 这时候 C++11 还为互斥量提供了一个 RAII 语法的模板类 `std::lock_guard`。
 RAII 在不失代码简洁性的同时，很好的保证了代码的异常安全性。
@@ -42,6 +42,7 @@ RAII 在不失代码简洁性的同时，很好的保证了代码的异常安全
 
 ```cpp
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 int v = 1;
@@ -66,7 +67,7 @@ int main() {
 }
 ```
 
-由于 C++ 保证了所有栈对象在声明周期结束时会被销毁，所以这样的代码也是异常安全的。
+由于 C++ 保证了所有栈对象在生命周期结束时会被销毁，所以这样的代码也是异常安全的。
 无论 `critical_section()` 正常返回、还是在中途抛出异常，都会引发堆栈回退，也就自动调用了 `unlock()`。
 
 而 `std::unique_lock` 则相对于 `std::lock_guard` 出现的，`std::unique_lock` 更加灵活，
@@ -82,6 +83,7 @@ int main() {
 
 ```cpp
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 int v = 1;
@@ -472,9 +474,9 @@ int main() {
     consumer.join();
     ```
 
-3. 释放/获取模型：在此模型下，我们可以进一步加紧对不同线程间原子操作的顺序的限制，在释放 `std::memory_order_release` 和获取 `std::memory_order_acquire` 之间规定时序，即发生在释放操作之前的**所有**写操作，对其他线程的任何获取操作都是可见的，亦即发生顺序（happens-before）。
+3. 释放/获取模型：在此模型下，我们可以进一步加紧对不同线程间原子操作的顺序的限制，在释放 `std::memory_order_release` 和获取 `std::memory_order_acquire` 之间规定时序，即发生在释放（release）操作之前的**所有**写操作，对其他线程的任何获取（acquire）操作都是可见的，亦即发生顺序（happens-before）。
 
-    可以看到，`std::memory_order_release` 确保了它之后的写行为不会发生在释放操作之前，是一个向后的屏障，而 `std::memory_order_acquire` 确保了它之前的写行为，不会发生在该获取操作之后，是一个向前的屏障。对于选项 `std::memory_order_acq_rel` 而言，则结合了这两者的特点，唯一确定了一个内存屏障，使得当前线程对内存的读写不会被重排到此操作的前后。
+    可以看到，`std::memory_order_release` 确保了它之前的写操作不会发生在释放操作之后，是一个向后的屏障（backward），而 `std::memory_order_acquire` 确保了它之前的写行为不会发生在该获取操作之后，是一个向前的屏障（forward）。对于选项 `std::memory_order_acq_rel` 而言，则结合了这两者的特点，唯一确定了一个内存屏障，使得当前线程对内存的读写不会被重排并越过此操作的前后：
 
     我们来看一个例子：
 
@@ -552,11 +554,11 @@ C++11 语言层提供了并发编程的相关支持，本节简单的介绍了 `
 ## 进一步阅读的参考资料
 
 - [C++ 并发编程\(中文版\)](https://www.gitbook.com/book/chenxiaowei/cpp_concurrency_in_action/details)
-- [线程支持库文档](http://en.cppreference.com/w/cpp/thread)
+- [线程支持库文档](https://en.cppreference.com/w/cpp/thread)
 - Herlihy, M. P., & Wing, J. M. (1990). Linearizability: a correctness condition for concurrent objects. ACM Transactions on Programming Languages and Systems, 12(3), 463–492. https://doi.org/10.1145/78969.78972
 
 ## 许可
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
 
-本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](http://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。
+本教程由[欧长坤](https://github.com/changkun)撰写，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。

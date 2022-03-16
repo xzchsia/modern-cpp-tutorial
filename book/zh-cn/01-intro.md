@@ -25,6 +25,7 @@ InstalledDir: /Library/Developer/CommandLineTools/usr/bin
 > **注意**：弃用并非彻底不能用，只是用于暗示程序员这些特性将从未来的标准中消失，应该尽量避免使用。但是，已弃用的特性依然是标准库的一部分，并且出于兼容性的考虑，大部分特性其实会『永久』保留。
 
 - **不再允许字符串字面值常量赋值给一个 `char *`。如果需要用字符串字面值常量赋值和初始化一个 `char *`，应该使用 `const char *` 或者 `auto`。**
+
     ```cpp
     char *str = "hello world!"; // 将出现弃用警告
     ```
@@ -91,7 +92,7 @@ int main() {
 gcc -c foo.c
 ```
 
-编译出 `foo.o` 文件，再使用 `clang++` 将 C++代码和 `.o` 文件链接起来（或者都编译为 `.o` 再统一链接）：
+编译出 `foo.o` 文件，再使用 `clang++` 将 C++ 代码和 `.o` 文件链接起来（或者都编译为 `.o` 再统一链接）：
 
 ```bash
 clang++ 1.1.cpp foo.o -std=c++2a -o 1.1
@@ -120,7 +121,7 @@ clean:
 
 > 注意：`Makefile` 中的缩进是制表符而不是空格符，如果你直接复制这段代码到你的编辑器中，制表符可能会被自动替换掉，请自行确保在 `Makefile` 中的缩进是由制表符完成的。
 >
-> 如果你还不知道 Makefile 的使用也没有关系，本教程中不会构建过于复杂的代码，简单的在命令行中使用 `clang++ -std=c++2a` 也可以阅读本书。
+> 如果你还不知道 `Makefile` 的使用也没有关系，本教程中不会构建过于复杂的代码，简单的在命令行中使用 `clang++ -std=c++2a` 也可以阅读本书。
 
 如果你是首次接触现代 C++，那么你很可能还看不懂上面的那一小段代码，即：
 
@@ -137,12 +138,12 @@ clean:
 ## 进一步阅读的参考文献
 
 - [C++ 语言导学. Bjarne Stroustrup](https://www.amazon.cn/dp/B00WUBYBYS/ref=sr_1_1?ie=UTF8&qid=1522400738&sr=8-1&keywords=C%2B%2B+%E8%AF%AD%E8%A8%80%E5%AF%BC%E5%AD%A6)
-- [C++ 历史](http://en.cppreference.com/w/cpp/language/history)
-- [C++ 特性在 GCC/Clang 等编译器中的支持情况](http://en.cppreference.com/w/cpp/compiler_support)
+- [C++ 历史](https://en.cppreference.com/w/cpp/language/history)
+- [C++ 特性在 GCC/Clang 等编译器中的支持情况](https://en.cppreference.com/w/cpp/compiler_support)
 - [C++98 与 C99 之间的区别](http://david.tribble.com/text/cdiffs.htm#C99-vs-CPP98)
 
 ## 许可
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
+<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a>
 
-本书系[欧长坤](https://github.com/changkun)著，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](http://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。
+本书系[欧长坤](https://github.com/changkun)著，采用[知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议](https://creativecommons.org/licenses/by-nc-nd/4.0/)许可。项目中代码使用 MIT 协议开源，参见[许可](../../LICENSE)。
