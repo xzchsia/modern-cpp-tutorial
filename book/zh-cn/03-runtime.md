@@ -69,15 +69,15 @@ void lambda_reference_capture() {
 
 #### 3. 隐式捕获
 
-手动书写捕获列表有时候是非常复杂的，这种机械性的工作可以交给编译器来处理，这时候可以在捕获列表中写一个 
+手动书写捕获列表有时候是非常复杂的，这种机械性的工作可以交给编译器来处理，这时候可以在捕获列表中写一个
 `&` 或 `=` 向编译器声明采用引用捕获或者值捕获.
 
 总结一下，捕获提供了 Lambda 表达式对外部值进行使用的功能，捕获列表的最常用的四种形式可以是：
 
 - \[\] 空捕获列表
 - \[name1, name2, ...\] 捕获一系列变量
-- \[&\] 引用捕获, 让编译器自行推导引用列表
-- \[=\] 值捕获, 让编译器自行推导值捕获列表
+- \[&\] 引用捕获, 从函数体内的使用确定引用捕获列表
+- \[=\] 值捕获, 从函数体内的使用确定值捕获列表
 
 #### 4. 表达式捕获
 
@@ -107,11 +107,9 @@ void lambda_expression_capture() {
 ### 泛型 Lambda
 
 上一节中我们提到了 `auto` 关键字不能够用在参数表里，这是因为这样的写法会与模板的功能产生冲突。
-但是 Lambda 表达式并不是普通函数，所以 Lambda 表达式并不能够模板化。
-这就为我们造成了一定程度上的麻烦：参数表不能够泛化，必须明确参数表类型。
-
-幸运的是，这种麻烦只存在于 C++11 中，从 C++14 开始，
-Lambda 函数的形式参数可以使用 `auto` 关键字来产生意义上的泛型：
+但是 Lambda 表达式并不是普通函数，所以在没有明确指明参数表类型的情况下，Lambda 表达式并不能够模板化。
+幸运的是，这种麻烦只存在于 C++11 中，从 C++14 开始，Lambda 函数的形式参数可以使用 `auto`
+关键字来产生意义上的泛型：
 
 ```cpp
 auto add = [](auto x, auto y) {
@@ -136,7 +134,7 @@ Lambda 表达式的本质是一个和函数对象类型相似的类类型（称�
 #include <iostream>
 
 using foo = void(int); // 定义函数类型, using 的使用见上一节中的别名语法
-void functional(foo f) { // 定义在参数列表中的函数类型 foo 被视为退化后的函数指针类型 foo*
+void functional(foo f) { // 参数列表中定义的函数类型 foo 被视为退化后的函数指针类型 foo*
     f(1); // 通过函数指针调用函数
 }
 
@@ -193,7 +191,8 @@ int foo(int a, int b, int c) {
     ;
 }
 int main() {
-    // 将参数1,2绑定到函数 foo 上，但是使用 std::placeholders::_1 来对第一个参数进行占位
+    // 将参数1,2绑定到函数 foo 上，
+    // 但使用 std::placeholders::_1 来对第一个参数进行占位
     auto bindFoo = std::bind(foo, std::placeholders::_1, 1,2);
     // 这时调用 bindFoo 时，只需要提供第一个参数即可
     bindFoo(1);
@@ -213,34 +212,44 @@ int main() {
 
 要弄明白右值引用到底是怎么一回事，必须要对左值和右值做一个明确的理解。
 
-**左值(lvalue, left value)**，顾名思义就是赋值符号左边的值。准确来说，
+**左值** (lvalue, left value)，顾名思义就是赋值符号左边的值。准确来说，
 左值是表达式（不一定是赋值表达式）后依然存在的持久对象。
 
-**右值(rvalue, right value)**，右边的值，是指表达式结束后就不再存在的临时对象。
+**右值** (rvalue, right value)，右边的值，是指表达式结束后就不再存在的临时对象。
 
 而 C++11 中为了引入强大的右值引用，将右值的概念进行了进一步的划分，分为：纯右值、将亡值。
 
-**纯右值(prvalue, pure rvalue)**，纯粹的右值，要么是纯粹的字面量，例如 `10`, `true`；
+**纯右值** (prvalue, pure rvalue)，纯粹的右值，要么是纯粹的字面量，例如 `10`, `true`；
 要么是求值结果相当于字面量或匿名临时对象，例如 `1+2`。非引用返回的临时变量、运算表达式产生的临时变量、
 原始字面量、Lambda 表达式都属于纯右值。
 
-需要注意的是，字符串字面量只有在类中才是右值，当其位于普通函数中是左值。例如：
+需要注意的是，字面量除了字符串字面量以外，均为纯右值。而字符串字面量是一个左值，类型为 `const char` 数组。例如：
 
 ```cpp
-class Foo {
-        const char*&& right = "this is a rvalue"; // 此处字符串字面量为右值
-public:
-        void bar() {
-            right = "still rvalue"; // 此处字符串字面量为右值
-        } 
-};
+#include <type_traits>
 
 int main() {
-    const char* const &left = "this is an lvalue"; // 此处字符串字面量为左值
+    // 正确，"01234" 类型为 const char [6]，因此是左值
+    const char (&left)[6] = "01234";
+
+    // 断言正确，确实是 const char [6] 类型，注意 decltype(expr) 在 expr 是左值
+    // 且非无括号包裹的 id 表达式与类成员表达式时，会返回左值引用
+    static_assert(std::is_same<decltype("01234"), const char(&)[6]>::value, "");
+
+    // 错误，"01234" 是左值，不可被右值引用
+    // const char (&&right)[6] = "01234";
 }
 ```
 
-**将亡值(xvalue, expiring value)**，是 C++11 为了引入右值引用而提出的概念（因此在传统 C++ 中，
+但是注意，数组可以被隐式转换成相对应的指针类型，而转换表达式的结果（如果不是左值引用）则一定是个右值（右值引用为将亡值，否则为纯右值）。例如：
+
+```cpp
+const char*   p   = "01234";  // 正确，"01234" 被隐式转换为 const char*
+const char*&& pr  = "01234";  // 正确，"01234" 被隐式转换为 const char*，该转换的结果是纯右值
+// const char*& pl = "01234"; // 错误，此处不存在 const char* 类型的左值
+```
+
+**将亡值** (xvalue, expiring value)，是 C++11 为了引入右值引用而提出的概念（因此在传统 C++ 中，
 纯右值和右值是同一个概念），也就是即将被销毁、却能够被移动的值。
 
 将亡值可能稍有些难以理解，我们来看这样的代码：
@@ -352,19 +361,19 @@ void foo() {
 class A {
 public:
     int *pointer;
-    A():pointer(new int(1)) { 
-        std::cout << "构造" << pointer << std::endl; 
+    A():pointer(new int(1)) {
+        std::cout << "构造" << pointer << std::endl;
     }
-    A(A& a):pointer(new int(*a.pointer)) { 
-        std::cout << "拷贝" << pointer << std::endl; 
+    A(A& a):pointer(new int(*a.pointer)) {
+        std::cout << "拷贝" << pointer << std::endl;
     } // 无意义的对象拷贝
-    A(A&& a):pointer(a.pointer) { 
+    A(A&& a):pointer(a.pointer) {
         a.pointer = nullptr;
-        std::cout << "移动" << pointer << std::endl; 
+        std::cout << "移动" << pointer << std::endl;
     }
-    ~A(){ 
-        std::cout << "析构" << pointer << std::endl; 
-        delete pointer; 
+    ~A(){
+        std::cout << "析构" << pointer << std::endl;
+        delete pointer;
     }
 };
 // 防止编译器优化
@@ -397,8 +406,8 @@ int main() {
 
 int main() {
 
-std::string str = "Hello world.";
-std::vector<std::string> v;
+    std::string str = "Hello world.";
+    std::vector<std::string> v;
 
     // 将使用 push_back(const T&), 即产生拷贝行为
     v.push_back(str);
@@ -514,8 +523,8 @@ static_cast<T&&> 传参: 右值引用
 static_cast<T&&> 传参: 左值引用
 ```
 
-无论传递参数为左值还是右值，普通传参都会将参数作为左值进行转发，
-所以 `std::move` 总会接受到一个左值，从而转发调用了`reference(int&&)` 输出右值引用。
+无论传递参数为左值还是右值，普通传参都会将参数作为左值进行转发；
+由于类似的原因，`std::move` 总会接受到一个左值，从而转发调用了`reference(int&&)` 输出右值引用。
 
 唯独 `std::forward` 即没有造成任何多余的拷贝，同时**完美转发**(传递)了函数的实参给了内部调用的其他函数。
 
@@ -541,7 +550,7 @@ constexpr _Tp&& forward(typename std::remove_reference<_Tp>::type&& __t) noexcep
 ```
 
 在这份实现中，`std::remove_reference` 的功能是消除类型中的引用，
-而 `std::is_lvalue_reference` 用于检查类型推导是否正确，在 `std::forward` 的第二个实现中
+`std::is_lvalue_reference` 则用于检查类型推导是否正确，在 `std::forward` 的第二个实现中
 检查了接收到的值确实是一个左值，进而体现了坍缩规则。
 
 当 `std::forward` 接受左值时，`_Tp` 被推导为左值，所以返回值为左值；而当其接受右值时，

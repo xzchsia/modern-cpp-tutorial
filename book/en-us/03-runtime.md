@@ -87,8 +87,8 @@ capture lists can be:
 
 - \[\] empty capture list
 - \[name1, name2, ...\] captures a series of variables
-- \[&\] reference capture, let the compiler deduce the reference list by itself
-- \[=\] value capture, let the compiler deduce the value list by itself
+- \[&\] reference capture, determine the reference capture list from the uses the in function body
+- \[=\] value capture, determine the value capture list from the uses in the function body
 
 #### 4. Expression capture
 
@@ -126,13 +126,9 @@ initialize it in the expression.
 
 In the previous section, we mentioned that the `auto` keyword cannot be used
 in the parameter list because it would conflict with the functionality of the template.
-But Lambda expressions are not ordinary functions, so Lambda expressions are not templated.
-This has caused us some trouble: the parameter table cannot be generalized,
-and the parameter table type must be clarified.
-
-Fortunately, this trouble only exists in C++11, starting with C++14.
-The formal parameters of the Lambda function can use the `auto` keyword
-to generate generic meanings:
+But lambda expressions are not regular functions, without further specification on the typed parameter list, lambda expressions cannot utilize templates. Fortunately, this trouble
+only exists in C++11, starting with C++14. The formal parameters of the lambda function
+can use the `auto` keyword to utilize template generics:
 
 ```cpp
 void lambda_generic() {
@@ -221,8 +217,8 @@ int foo(int a, int b, int c) {
     ;
 }
 int main() {
-    // bind parameter 1, 2 on function foo, and use std::placeholders::_1 as placeholder
-    // for the first parameter.
+    // bind parameter 1, 2 on function foo,
+    // and use std::placeholders::_1 as placeholder for the first parameter.
     auto bindFoo = std::bind(foo, std::placeholders::_1, 1,2);
     // when call bindFoo, we only need one param left
     bindFoo(1);
@@ -263,20 +259,32 @@ Temporary variables returned by non-references, temporary variables generated
 by operation expressions, original literals, and Lambda expressions
 are all pure rvalue values.
 
-Note that a string literal became rvalue in a class, and remains an lvalue in other cases (e.g., in a function)：
+Note that a literal (except a string literal) is a prvalue. However, a string
+literal is an lvalue with type `const char` array. Consider the following examples:
 
 ```cpp
-class Foo {
-        const char*&& right = "this is a rvalue";
-public:
-        void bar() {
-            right = "still rvalue"; // the string literal is a rvalue
-        }
-};
+#include <type_traits>
 
 int main() {
-    const char* const &left = "this is an lvalue"; // the string literal is an lvalue
+    // Correct. The type of "01234" is const char [6], so it is an lvalue
+    const char (&left)[6] = "01234";
+
+    // Assert success. It is a const char [6] indeed. Note that decltype(expr)
+    // yields lvalue reference if expr is an lvalue and neither an unparenthesized
+    // id-expression nor an unparenthesized class member access expression.
+    static_assert(std::is_same<decltype("01234"), const char(&)[6]>::value, "");
+
+    // Error. "01234" is an lvalue, which cannot be referenced by an rvalue reference
+    // const char (&&right)[6] = "01234";
 }
+```
+
+However, an array can be implicitly converted to a corresponding pointer.The result, if not an lvalue reference, is an rvalue (xvalue if the result is an rvalue reference, prvalue otherwise):
+
+```cpp
+const char*   p    = "01234"; // Correct. "01234" is implicitly converted to const char*
+const char*&& pr   = "01234"; // Correct. "01234" is implicitly converted to const char*, which is a prvalue.
+// const char*& pl = "01234"; // Error. There is no type const char* lvalue
 ```
 
 **xvalue, expiring value** is the concept proposed by C++11 to introduce
@@ -339,11 +347,12 @@ void reference(std::string&& str) {
 int main()
 {
     std::string  lv1 = "string,";       // lv1 is a lvalue
-    // std::string&& r1 = s1;           // illegal, rvalue can't ref to lvalue
+    // std::string&& r1 = lv1;          // illegal, rvalue can't ref to lvalue
     std::string&& rv1 = std::move(lv1); // legal, std::move can convert lvalue to rvalue
     std::cout << rv1 << std::endl;      // string,
 
-    const std::string& lv2 = lv1 + lv1; // legal, const lvalue reference can extend temp variable's lifecycle
+    const std::string& lv2 = lv1 + lv1; // legal, const lvalue reference can
+                                        // extend temp variable's lifecycle
     // lv2 += "Test";                   // illegal, const ref can't be modified
     std::cout << lv2 << std::endl;      // string,string,
 
@@ -374,7 +383,7 @@ int main() {
 }
 ```
 
-The first question, why not allow non-linear references to bind to non-lvalues?
+The first question, why not allow non-constant references to bind to non-lvalues?
 This is because there is a logic error in this approach:
 
 ```cpp
@@ -470,8 +479,9 @@ int main() {
     // "str: Hello world."
     std::cout << "str: " << str << std::endl;
 
-    // use push_back(const T&&), no copy
-    // the string will be moved to vector, and therefore std::move can reduce copy cost
+    // use push_back(const T&&),
+    // no copy the string will be moved to vector,
+    // and therefore std::move can reduce copy cost
     v.push_back(std::move(str));
     // str is empty now
     std::cout << "str: " << str << std::endl;
@@ -529,7 +539,7 @@ both lvalue and rvalue. But follow the rules below:
 |           T&&           |       rvalue ref        |                   T&&                   |
 
 Therefore, the use of `T&&` in a template function may not be able to make an rvalue reference, and when a lvalue is passed, a reference to this function will be derived as an lvalue.
-More precisely, ** no matter what type of reference the template parameter is, the template parameter can be derived as a right reference type** if and only if the argument type is a right reference.
+More precisely, **no matter what type of reference the template parameter is, the template parameter can be derived as a right reference type** if and only if the argument type is a right reference.
 This makes `v` successful delivery of lvalues.
 
 Perfect forwarding is based on the above rules. The so-called perfect forwarding is to let us pass the parameters,
@@ -586,7 +596,7 @@ static_cast<T&&> param passing: lvalue reference
 Regardless of whether the pass parameter is an lvalue or an rvalue, the normal pass argument will forward the argument as an lvalue.
 So `std::move` will always accept an lvalue, which forwards the call to `reference(int&&)` to output the rvalue reference.
 
-Only `std::forward` does not cause any extra copies and ** perfectly forwards ** (passes) the arguments of the function to other functions that are called internally.
+Only `std::forward` does not cause any extra copies and **perfectly forwards** (passes) the arguments of the function to other functions that are called internally.
 
 `std::forward` is the same as `std::move`, and nothing is done. `std::move` simply converts the lvalue to the rvalue.
 `std::forward` is just a simple conversion of the parameters. From the point of view of the phenomenon,

@@ -31,11 +31,11 @@ int main() {
 We have already learned the basics of concurrency technology in the operating system, or the database, and `mutex` is one of the cores.
 C++11 introduces a class related to `mutex`, with all related functions in the `<mutex>` header file.
 
-`std::mutex` is the most basic `mutex` class in C++11, and you can create a mutex by instantiating `std::mutex`.
+`std::mutex` is the most basic mutex class in C++11, and a mutex can be created by constructing a `std::mutex` object.
 It can be locked by its member function `lock()`, and `unlock()` can be unlocked.
 But in the process of actually writing the code, it is best not to directly call the member function,
 Because calling member functions, you need to call `unlock()` at the exit of each critical section, and of course, exceptions.
-At this time, C++11 also provides a template class `std::lock_guard` for the RAII syntax for the mutex.
+At this time, C++11 also provides a template class `std::lock_guard` for the RAII mechanism for the mutex.
 
 RAII guarantees the exceptional security of the code while keeping the simplicity of the code.
 
@@ -67,7 +67,9 @@ int main() {
 ```
 
 Because C++ guarantees that all stack objects will be destroyed at the end of the declaration period, such code is also extremely safe.
-Whether `critical_section()` returns normally or if an exception is thrown in the middle, a stack rollback is thrown, and `unlock()` is automatically called.
+Whether `critical_section()` returns normally or if an exception is thrown in the middle, a stack unwinding is thrown, and `unlock()` is automatically called.
+
+> An exception is thrown and not caught (it is implementation-defined whether any stack unwinding is done in this case).
 
 `std::unique_lock` is more flexible than `std::lock_guard`.
 Objects of `std::unique_lock` manage the locking and unlocking operations on the `mutex` object with exclusive ownership (no other `unique_lock` objects owning the ownership of a `mutex` object). So in concurrent programming, it is recommended to use `std::unique_lock`.
@@ -145,7 +147,8 @@ int main() {
     std::cout << "waiting...";
     result.wait(); // block until future has arrived
     // output result
-    std::cout << "done!" << std:: endl << "future result is " << result.get() << std::endl;
+    std::cout << "done!" << std:: endl << "future result is " 
+              << result.get() << std::endl;
     return 0;
 }
 ```
@@ -157,7 +160,7 @@ After encapsulating the target to be called, you can use `get_future()` to get a
 The condition variable `std::condition_variable` was born to solve the deadlock and was introduced when the mutex operation was not enough.
 For example, a thread may need to wait for a condition to be true to continue execution.
 A dead wait loop can cause all other threads to fail to enter the critical section so that when the condition is true, a deadlock occurs.
-Therefore, the `condition_variable` instance is created primarily to wake up the waiting thread and avoid deadlocks.
+Therefore, the `condition_variable` object is created primarily to wake up the waiting thread and avoid deadlocks.
 `notify_one()` of `std::condition_variable` is used to wake up a thread;
 `notify_all()` is to notify all threads. Below is an example of a producer and consumer model:
 
@@ -196,7 +199,8 @@ int main() {
             // temporal unlock to allow producer produces more rather than
             // let consumer hold the lock until its consumed.
             lock.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // consumer is slower
+            // consumer is slower
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             lock.lock();
             if (!produced_nums.empty()) {
                 std::cout << "consuming " << produced_nums.front() << std::endl;
@@ -226,7 +230,7 @@ We simply can't expect multiple consumers to be able to produce content in a par
 ## 7.5 Atomic Operation and Memory Model
 
 Careful readers may be tempted by the fact that the example of the producer-consumer model in the previous section may have compiler optimizations that cause program errors.
-For example, the boolean `notified` is not modified by `volatile`, and the compiler may have optimizations for this variable, such as the value of a register.
+For example, the compiler may have optimizations for the variable `notified`, such as the value of a register.
 As a result, the consumer thread can never observe the change of this value. This is a good question. To explain this problem, we need to further discuss the concept of the memory model introduced from C++11. Let's first look at a question. What is the output of the following code?
 
 ```cpp
@@ -272,8 +276,8 @@ This is a very strong set of synchronization conditions, in other words when it 
 This seems too harsh for a variable that requires only atomic operations (no intermediate state).
 
 The research on synchronization conditions has a very long history, and we will not go into details here. Readers should understand that under the modern CPU architecture, atomic operations at the CPU instruction level are provided.
-Therefore, in the C++11 multi-threaded shared variable reading and writing, the introduction of the `std::atomic` template, so that we instantiate an atomic type, will be a
-Atomic type read and write operations are minimized from a set of instructions to a single CPU instruction. E.g:
+Therefore, the `std::atomic` template is introduced in C++11 for the topic of multi-threaded shared variable reading and writing, which enables us to instantiate atomic types,
+and minimize an atomic read or write operation from a set of instructions to a single CPU instruction. E.g:
 
 ```cpp
 std::atomic<int> counter;
@@ -417,8 +421,11 @@ Weakening the synchronization conditions between processes, usually we will cons
    ```
    3 4 4 4 // The write operation of x was quickly observed
    0 3 3 4 // There is a delay in the observed time of the x write operation
-   0 0 0 4 // The last read read the final value of x, but the previous changes were not observed.
-   0 0 0 0 // The write operation of x is not observed in the current time period, but the situation that x is 4 can be observed at some point in the future.
+   0 0 0 4 // The last read read the final value of x, 
+           // but the previous changes were not observed.
+   0 0 0 0 // The write operation of x is not observed in the current time period, 
+           // but the situation that x is 4 can be observed 
+           // at some point in the future.
    ```
 
 ### Memory Orders
@@ -468,7 +475,7 @@ To achieve the ultimate performance and achieve consistency of various strength 
 
    As you can see, `std::memory_order_release` ensures that a write before a release does not occur after the release operation, which is a **backward barrier**, and `std::memory_order_acquire` ensures that a subsequent read or write after a acquire does not occur before the acquire operation, which is a **forward barrier**.
    For the `std::memory_order_acq_rel` option, combines the characteristics of the two barriers and determines a unique memory barrier, such that reads and writes of the current thread will not be rearranged across the barrier.
- 
+
    Let's check an example:
 
    ```cpp
@@ -480,9 +487,8 @@ To achieve the ultimate performance and achieve consistency of various strength 
    });
    std::thread acqrel([&]() {
        int expected = 1; // must before compare_exchange_strong
-       while(!flag.compare_exchange_strong(expected, 2, std::memory_order_acq_rel)) {
+       while(!flag.compare_exchange_strong(expected, 2, std::memory_order_acq_rel)) 
            expected = 1; // must after compare_exchange_strong
-       }
        // flag has changed to 2
    });
    std::thread acquire([&]() {
@@ -495,7 +501,7 @@ To achieve the ultimate performance and achieve consistency of various strength 
    acquire.join();
    ```
 
-   In this case we used `compare_exchange_strong`, which is the Compare-and-swap primitive, which has a weaker version, `compare_exchange_weak`, which allows a failure to be returned even if the exchange is successful. The reason is due to a false failure on some platforms, specifically when the CPU performs a context switch, another thread loads the same address to produce an inconsistency. In addition, the performance of `compare_exchange_strong` may be slightly worse than `compare_exchange_weak`, but in most cases, `compare_exchange_strong` should be limited.
+   In this case we used `compare_exchange_strong`, which is the Compare-and-swap primitive, which has a weaker version, `compare_exchange_weak`, which allows a failure to be returned even if the exchange is successful. The reason is due to a false failure on some platforms, specifically when the CPU performs a context switch, another thread loads the same address to produce an inconsistency. In addition, the performance of `compare_exchange_strong` may be slightly worse than `compare_exchange_weak`. However, in most cases, `compare_exchange_weak` is discouraged due to the complexity of its usage.
 
 4. Sequential Consistent Model: Under this model, atomic operations satisfy sequence consistency, which in turn can cause performance loss. It can be specified explicitly by `std::memory_order_seq_cst`. Let's look at a final example:
 

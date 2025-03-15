@@ -14,9 +14,9 @@ order: 2
 
 ###  nullptr
 
-`nullptr` 出现的目的是为了替代 `NULL`。在某种意义上来说，传统 C++ 会把 `NULL`、`0` 视为同一种东西，这取决于编译器如何定义 `NULL`，有些编译器会将 `NULL` 定义为 `((void*)0)`，有些则会直接将其定义为 `0`。
+`nullptr` 出现的目的是为了替代 `NULL`。 C 与 C++ 语言中有**空指针常量**，它们能被隐式转换成任何指针类型的空指针值，或 C++ 中的任何成员指针类型的空成员指针值。 `NULL` 由标准库实现提供，并被定义为实现定义的空指针常量。在 C 中，有些标准库会把 `NULL` 定义为 `((void*)0)` 而有些将它定义为 `0`。
 
-C++ **不允许**直接将 `void *` 隐式转换到其他类型。但如果编译器尝试把 `NULL` 定义为 `((void*)0)`，那么在下面这句代码中：
+C++ **不允许**直接将 `void *` 隐式转换到其他类型，从而 `((void*)0)` 不是 `NULL` 的合法实现。如果标准库尝试把 `NULL` 定义为 `((void*)0)`，那么下面这句代码中会出现编译错误：
 
 ```cpp
 char *ch = NULL;
@@ -176,12 +176,13 @@ int main() {
     }
 
     // 将输出 1, 4, 3, 4
-    for (std::vector<int>::iterator element = vec.begin(); element != vec.end(); ++element)
+    for (std::vector<int>::iterator element = vec.begin(); element != vec.end(); 
+        ++element)
         std::cout << *element << std::endl;
 }
 ```
 
-在上面的代码中，我们可以看到 `itr` 这一变量是定义在整个 `main()` 的作用域内的，这导致当我们需要再次遍历整个 `std::vectors` 时，需要重新命名另一个变量。C++17 消除了这一限制，使得我们可以在 `if`（或 `switch`）中完成这一操作：
+在上面的代码中，我们可以看到 `itr` 这一变量是定义在整个 `main()` 的作用域内的，这导致当我们需要再次遍历整个 `std::vector` 时，需要重新命名另一个变量。C++17 消除了这一限制，使得我们可以在 `if`（或 `switch`）中完成这一操作：
 
 ```cpp
 // 将临时变量放到 if 语句内
@@ -228,11 +229,13 @@ int main() {
 }
 ```
 
-为了解决这个问题，C++11 首先把初始化列表的概念绑定到了类型上，并将其称之为 `std::initializer_list`，允许构造函数或其他函数像参数一样使用初始化列表，这就为类对象的初始化与普通数组和 POD 的初始化方法提供了统一的桥梁，例如：
+为解决这个问题，C++11 首先把初始化列表的概念绑定到类型上，称其为 `std::initializer_list`，允许构造函数或其他函数像参数一样使用初始化列表，这就为类对象的初始化与普通数组和 POD 的初始化方法提供了统一的桥梁，例如：
 
 ```cpp
 #include <initializer_list>
 #include <vector>
+#include <iostream>
+
 class MagicFoo {
 public:
     std::vector<int> vec;
@@ -247,7 +250,9 @@ int main() {
     MagicFoo magicFoo = {1, 2, 3, 4, 5};
 
     std::cout << "magicFoo: ";
-    for (std::vector<int>::iterator it = magicFoo.vec.begin(); it != magicFoo.vec.end(); ++it) std::cout << *it << std::endl;
+    for (std::vector<int>::iterator it = magicFoo.vec.begin(); 
+        it != magicFoo.vec.end(); ++it) 
+        std::cout << *it << std::endl;
 }
 ```
 
@@ -309,8 +314,8 @@ C++11 引入了 `auto` 和 `decltype` 这两个关键字实现了类型推导，
 ```cpp
 // 在 C++11 之前
 // 由于 cbegin() 将返回 vector<int>::const_iterator
-// 所以 itr 也应该是 vector<int>::const_iterator 类型
-for(vector<int>::const_iterator it = vec.cbegin(); itr != vec.cend(); ++it)
+// 所以 it 也应该是 vector<int>::const_iterator 类型
+for(vector<int>::const_iterator it = vec.cbegin(); it != vec.cend(); ++it)
 ```
 
 而有了 `auto` 之后可以：
@@ -349,17 +354,22 @@ auto i = 5;              // i 被推导为 int
 auto arr = new auto(10); // arr 被推导为 int *
 ```
 
-从 C++ 20 起，`auto` 甚至能用于函数传参，考虑下面的例子：
+从 C++ 14 起，`auto` 能用于 lambda 表达式中的函数传参，而 C++ 20 起该功能推广到了一般的函数。考虑下面的例子：
 
 
 ```cpp
-int add(auto x, auto y) {
+auto add14 = [](auto x, auto y) -> int {
     return x+y;
 }
 
-auto i = 5; // 被推导为 int
-auto j = 6; // 被推导为 int
-std::cout << add(i, j) << std::endl;
+int add20(auto x, auto y) {
+    return x+y;
+}
+
+auto i = 5; // type int
+auto j = 6; // type int
+std::cout << add14(i, j) << std::endl;
+std::cout << add20(i, j) << std::endl;
 ```
 
 >
@@ -408,7 +418,7 @@ type z == type x
 
 ### 尾返回类型推导
 
-你可能会思考，在介绍 `auto` 时，我们已经提过 `auto` 不能用于函数形参进行类型推导，那么 `auto` 能不能用于推导函数的返回类型呢？还是考虑一个加法函数的例子，在传统 C++ 中我们必须这么写：
+你可能会思考， `auto` 能不能用于推导函数的返回类型呢？还是考虑一个加法函数的例子，在传统 C++ 中我们必须这么写：
 
 ```cpp
 template<typename R, typename T, typename U>
@@ -875,7 +885,7 @@ C++11 引入了 `override` 和 `final` 这两个关键字来防止上述情形�
 
 #### override
 
-当重载虚函数时，引入 `override` 关键字将显式的告知编译器进行重载，编译器将检查基函数是否存在这样的虚函数，否则将无法通过编译：
+当重载虚函数时，引入 `override` 关键字将显式的告知编译器进行重载，编译器将检查基函数是否存在这样的其函数签名一致的虚函数，否则将无法通过编译：
 
 ```cpp
 struct Base {
@@ -953,7 +963,7 @@ enum class new_enum : unsigned int {
 
 ```cpp
 if (new_enum::value3 == new_enum::value4) {
-    // 会输出
+    // 会输出true
     std::cout << "new_enum::value3 == new_enum::value4" << std::endl;
 }
 ```

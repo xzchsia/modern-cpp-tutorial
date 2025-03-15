@@ -11,7 +11,7 @@ order: 7
 ## 7.1 并行基础
 
 `std::thread` 用于创建一个执行的线程实例，所以它是一切并发编程的基础，使用时需要包含 `<thread>` 头文件，
-它提供了很多基本的线程操作，例如 `get_id()` 来获取所创建线程的线程 ID，使用 `join()` 来加入一个线程等等，例如：
+它提供了很多基本的线程操作，例如 `get_id()` 来获取所创建线程的线程 ID，使用 `join()` 来等待一个线程结束（与该线程汇合）等等，例如：
 
 ```cpp
 #include <iostream>
@@ -31,11 +31,12 @@ int main() {
 我们在操作系统、亦或是数据库的相关知识中已经了解过了有关并发技术的基本知识，`mutex` 就是其中的核心之一。
 C++11 引入了 `mutex` 相关的类，其所有相关的函数都放在 `<mutex>` 头文件中。
 
-`std::mutex` 是 C++11 中最基本的 `mutex` 类，通过实例化 `std::mutex` 可以创建互斥量，
+`std::mutex` 是 C++11 中最基本的互斥量类，可以通过构造 `std::mutex` 对象创建互斥量，
 而通过其成员函数 `lock()` 可以进行上锁，`unlock()` 可以进行解锁。
 但是在实际编写代码的过程中，最好不去直接调用成员函数，
 因为调用成员函数就需要在每个临界区的出口处调用 `unlock()`，当然，还包括异常。
-这时候 C++11 还为互斥量提供了一个 RAII 语法的模板类 `std::lock_guard`。
+而 C++11 为互斥量提供了一个 RAII 机制的模板类 `std::lock_guard`。
+
 RAII 在不失代码简洁性的同时，很好的保证了代码的异常安全性。
 
 在 RAII 用法下，对于临界区的互斥量的创建只需要在作用域的开始部分，例如：
@@ -68,9 +69,11 @@ int main() {
 ```
 
 由于 C++ 保证了所有栈对象在生命周期结束时会被销毁，所以这样的代码也是异常安全的。
-无论 `critical_section()` 正常返回、还是在中途抛出异常，都会引发堆栈回退，也就自动调用了 `unlock()`。
+无论 `critical_section()` 正常返回、还是在中途抛出异常，都会引发栈回溯，也就自动调用了 `unlock()`。
 
-而 `std::unique_lock` 则相对于 `std::lock_guard` 出现的，`std::unique_lock` 更加灵活，
+> 没有捕获抛出的异常（此时由实现定义是否进行栈回溯）。
+
+而 `std::unique_lock` 则是相对于 `std::lock_guard` 出现的，`std::unique_lock` 更加灵活，
 `std::unique_lock` 的对象会以独占所有权（没有其他的 `unique_lock` 对象同时拥有某个 `mutex` 对象的所有权）
 的方式管理 `mutex` 对象上的上锁和解锁的操作。所以在并发编程中，推荐使用 `std::unique_lock`。
 
@@ -147,7 +150,8 @@ int main() {
     std::cout << "waiting...";
     result.wait(); // 在此设置屏障，阻塞到期物的完成
     // 输出执行结果
-    std::cout << "done!" << std:: endl << "future result is " << result.get() << std::endl;
+    std::cout << "done!" << std:: endl << "future result is "
+              << result.get() << std::endl;
     return 0;
 }
 ```
@@ -159,7 +163,7 @@ int main() {
 条件变量 `std::condition_variable` 是为了解决死锁而生，当互斥操作不够用而引入的。
 比如，线程可能需要等待某个条件为真才能继续执行，
 而一个忙等待循环中可能会导致所有其他线程都无法进入临界区使得条件为真时，就会发生死锁。
-所以，`condition_variable` 实例被创建出现主要就是用于唤醒等待线程从而避免死锁。
+所以，`condition_variable` 对象被创建出现主要就是用于唤醒等待线程从而避免死锁。
 `std::condition_variable`的 `notify_one()` 用于唤醒一个线程；
 `notify_all()` 则是通知所有线程。下面是一个生产者和消费者模型的例子：
 
@@ -198,7 +202,8 @@ int main() {
             }
             // 短暂取消锁，使得生产者有机会在消费者消费空前继续生产
             lock.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 消费者慢于生产者
+            // 消费者慢于生产者
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             lock.lock();
             while (!produced_nums.empty()) {
                 std::cout << "consuming " << produced_nums.front() << std::endl;
@@ -230,7 +235,7 @@ int main() {
 ## 7.5 原子操作与内存模型
 
 细心的读者可能会对前一小节中生产者消费者模型的例子可能存在编译器优化导致程序出错的情况产生疑惑。
-例如，布尔值 `notified` 没有被 `volatile` 修饰，编译器可能对此变量存在优化，例如将其作为一个寄存器的值，
+例如，编译器可能对变量 `notified` 存在优化，例如将其作为一个寄存器的值，
 从而导致消费者线程永远无法观察到此值的变化。这是一个好问题，为了解释清楚这个问题，我们需要进一步讨论
 从 C++ 11 起引入的内存模型这一概念。我们首先来看一个问题，下面这段代码输出结果是多少？
 
@@ -240,7 +245,7 @@ int main() {
 
 int main() {
     int a = 0;
-    int flag = 0;
+    volatile int flag = 0;
 
     std::thread t1([&]() {
         while (flag != 1);
@@ -260,7 +265,7 @@ int main() {
 }
 ```
 
-从直观上看，`t2` 中 `a = 5;` 这一条语句似乎总在 `flag = 1;` 之前得到执行，而 `t1` 中 `while (flag != 1)` 
+从直观上看，`t2` 中 `a = 5;` 这一条语句似乎总在 `flag = 1;` 之前得到执行，而 `t1` 中 `while (flag != 1)`
 似乎保证了 `std::cout << "b = " << b << std::endl;` 不会再标记被改变前执行。从逻辑上看，似乎 `b` 的值应该等于 5。
 但实际情况远比此复杂得多，或者说这段代码本身属于未定义的行为，因为对于 `a` 和 `flag` 而言，他们在两个并行的线程中被读写，
 出现了竞争。除此之外，即便我们忽略竞争读写，仍然可能受 CPU 的乱序执行，编译器对指令的重排的影响，
@@ -277,9 +282,8 @@ int main() {
 这是一组非常强的同步条件，换句话说当最终编译为 CPU 指令时会表现为非常多的指令（我们之后再来看如何实现一个简单的互斥锁）。
 这对于一个仅需原子级操作（没有中间态）的变量，似乎太苛刻了。
 
-关于同步条件的研究有着非常久远的历史，我们在这里不进行赘述。读者应该明白，在现代 CPU 体系结构下提供了 CPU 指令级的原子操作，
-因此在 C++11 中多线程下共享变量的读写这一问题上，还引入了 `std::atomic` 模板，使得我们实例化一个原子类型，将一个
-原子类型读写操作从一组指令，最小化到单个 CPU 指令。例如：
+关于同步条件的研究有着非常久远的历史，我们在这里不进行赘述。读者应该明白，现代 CPU 体系结构提供了 CPU 指令级的原子操作，
+因此在多线程下共享变量的读写这一问题上， C++11 中还引入了 `std::atomic` 模板，使得我们能实例化原子类型，并将一个原子写操作从一组指令，最小化到单个 CPU 指令。例如：
 
 ```cpp
 std::atomic<int> counter;
@@ -311,7 +315,7 @@ int main() {
 }
 ```
 
-当然，并非所有的类型都能提供原子操作，这是因为原子操作的可行性取决于 CPU 的架构以及所实例化的类型结构是否满足该架构对内存对齐
+当然，并非所有的类型都能提供原子操作，这是因为原子操作的可行性取决于具体的 CPU 架构，以及所实例化的类型结构是否能够满足该 CPU 架构对内存对齐
 条件的要求，因而我们总是可以通过 `std::atomic<T>::is_lock_free` 来检查该原子类型是否需支持原子操作，例如：
 
 ```cpp
@@ -408,7 +412,7 @@ int main() {
           y.load()            c = a + b  x.store(3)
     ```
 
-    上面给出的三种例子都是属于因果一致的，因为整个过程中，只有 `c` 对 `a` 和 `b` 产生依赖，而 `x` 和 `y` 
+    上面给出的三种例子都是属于因果一致的，因为整个过程中，只有 `c` 对 `a` 和 `b` 产生依赖，而 `x` 和 `y`
     在此例子中表现为没有关系（但实际情况中我们需要更详细的信息才能确定 `x` 与 `y` 确实无关）
 
 4. 最终一致性：是最弱的一致性要求，它只保障某个操作在未来的某个时间节点上会被观察到，但并未要求被观察到的时间。因此我们甚至可以对此条件稍作加强，例如规定某个操作被观察到的时间总是有界的。当然这已经不在我们的讨论范围之内了。
@@ -419,7 +423,7 @@ int main() {
 
 
     T2 ---------+------------+--------------------+--------+-------->
-             x.read()      x.read()           x.read()   x.read()
+             x.read      x.read()           x.read()   x.read()
     ```
 
     在上面的情况中，如果我们假设 x 的初始值为 0，则 `T2` 中四次 `x.read()` 结果可能但不限于以下情况：
@@ -428,7 +432,8 @@ int main() {
     3 4 4 4 // x 的写操作被很快观察到
     0 3 3 4 // x 的写操作被观察到的时间存在一定延迟
     0 0 0 4 // 最后一次读操作读到了 x 的最终值，但此前的变化并未观察到
-    0 0 0 0 // 在当前时间段内 x 的写操作均未被观察到，但未来某个时间点上一定能观察到 x 为 4 的情况
+    0 0 0 0 // 在当前时间段内 x 的写操作均未被观察到，
+            // 但未来某个时间点上一定能观察到 x 为 4 的情况
     ```
 
 ### 内存顺序
@@ -489,9 +494,8 @@ int main() {
     });
     std::thread acqrel([&]() {
         int expected = 1; // must before compare_exchange_strong
-        while(!flag.compare_exchange_strong(expected, 2, std::memory_order_acq_rel)) {
+        while(!flag.compare_exchange_strong(expected, 2, std::memory_order_acq_rel))
             expected = 1; // must after compare_exchange_strong
-        }
         // flag has changed to 2
     });
     std::thread acquire([&]() {
@@ -504,7 +508,7 @@ int main() {
     acquire.join();
     ```
 
-    在此例中我们使用了 `compare_exchange_strong`，它便是比较交换原语（Compare-and-swap primitive），它有一个更弱的版本，即 `compare_exchange_weak`，它允许即便交换成功，也仍然返回 `false` 失败。其原因是因为在某些平台上虚假故障导致的，具体而言，当 CPU 进行上下文切换时，另一线程加载同一地址产生的不一致。除此之外，`compare_exchange_strong` 的性能可能稍差于 `compare_exchange_weak`，但大部分情况下，`compare_exchange_strong` 应该被有限考虑。
+    在此例中我们使用了 `compare_exchange_strong` 比较交换原语（Compare-and-swap primitive），它有一个更弱的版本，即 `compare_exchange_weak`，它允许即便交换成功，也仍然返回 `false` 失败。其原因是因为在某些平台上虚假故障导致的，具体而言，当 CPU 进行上下文切换时，另一线程加载同一地址产生的不一致。除此之外，`compare_exchange_strong` 的性能可能稍差于 `compare_exchange_weak`，但大部分情况下，鉴于其使用的复杂度而言，`compare_exchange_weak` 应该被有限考虑。
 
 4. 顺序一致模型：在此模型下，原子操作满足顺序一致性，进而可能对性能产生损耗。可显式的通过 `std::memory_order_seq_cst` 进行指定。最后来看一个例子：
 
@@ -553,7 +557,7 @@ C++11 语言层提供了并发编程的相关支持，本节简单的介绍了 `
 
 ## 进一步阅读的参考资料
 
-- [C++ 并发编程\(中文版\)](https://www.gitbook.com/book/chenxiaowei/cpp_concurrency_in_action/details)
+- [C++ 并发编程\(中文版\)](https://book.douban.com/subject/26386925/)
 - [线程支持库文档](https://en.cppreference.com/w/cpp/thread)
 - Herlihy, M. P., & Wing, J. M. (1990). Linearizability: a correctness condition for concurrent objects. ACM Transactions on Programming Languages and Systems, 12(3), 463–492. https://doi.org/10.1145/78969.78972
 
